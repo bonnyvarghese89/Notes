@@ -1,0 +1,745 @@
+**************************************
+Redis Labs
+**************************************
+
+1. KEYS
+redisu$ redis-cli
+127.0.0.1:6379> dbsize
+(integer) 14328
+127.0.0.1:6379> set customer:1000 fred
+OK
+127.0.0.1:6379> get customer:1000
+"fred"
+127.0.0.1:6379> set customer:2000 Bonny
+OK
+127.0.0.1:6379> get customer:2000
+"Bonny"
+127.0.0.1:6379> set customer:1500 Raichal
+OK
+127.0.0.1:6379> keys customer:1*
+1) "customer:1500"
+2) "customer:1000"
+127.0.0.1:6379> scan 0 MATCH Customer:1*
+1) "9216"
+2) (empty list or set)
+127.0.0.1:6379> scan 9216 MATCH Customer:1*
+1) "4608"
+2) (empty list or set)
+127.0.0.1:6379> scan 4608 MATCH Customer:1* COUNT 1000
+1) "15944"
+2) (empty list or set)
+127.0.0.1:6379> scan 4608 MATCH Customer:1* COUNT 10000
+1) "2957"
+2) (empty list or set)
+127.0.0.1:6379> scan 4608 MATCH Customer:1* COUNT 100000
+1) "0"
+2) (empty list or set)
+127.0.0.1:6379> scan 4608 MATCH customer:1* COUNT 100000
+1) "0"
+2) 1) "customer:1500"
+   2) "customer:1000"
+127.0.0.1:6379> unlink customer:2000
+(integer) 1
+127.0.0.1:6379> get cusotmer:1000
+(nil)
+127.0.0.1:6379> EXISTS customer:1000
+(integer) 1
+127.0.0.1:6379> set customer:1000 Hi NX
+(nil)
+127.0.0.1:6379> set customer:1000 Hi XX
+OK
+127.0.0.1:6379> get customer:1000
+"Hi"
+127.0.0.1:6379> set customer:1200 Hi XX
+(nil)
+127.0.0.1:6379> set customer:1200 Hi NX
+OK
+127.0.0.1:6379> set seat-hold Row:A Seat:4 PX 4000
+(error) ERR syntax error
+127.0.0.1:6379> set seat-hold Row:A Seat:4 px 4000
+(error) ERR syntax error
+127.0.0.1:6379> set seat-hold Row:ASeat:4 PX 4000
+OK
+127.0.0.1:6379> set seat-hold Row:ASeat:4 EX 4
+OK
+127.0.0.1:6379> get seat-hold Row:ASeat:4
+(error) ERR wrong number of arguments for 'get' command
+127.0.0.1:6379> get seat-hold
+(nil)
+127.0.0.1:6379> set cus 1000 hi
+(error) ERR syntax error
+127.0.0.1:6379> set cus 1000:hi
+OK
+127.0.0.1:6379> set cus 1000:hii XX ex 20
+OK
+127.0.0.1:6379> ttl cus
+(integer) 14
+127.0.0.1:6379> ttl cus
+(integer) 10
+127.0.0.1:6379> ttl cus
+(integer) 3
+127.0.0.1:6379> ttl cus
+(integer) -2
+
+127.0.0.1:6379> set cus 1000:hi ex 20
+OK
+127.0.0.1:6379> ttl cus
+(integer) 15
+127.0.0.1:6379> persist cus
+(integer) 1
+127.0.0.1:6379> ttl cus
+(integer) -1
+
+--------------------
+Strings
+--------------------
+127.0.0.1:6379> set inventory:4X100 1000
+OK
+127.0.0.1:6379> set inventory:4-100-race 1000
+OK
+127.0.0.1:6379> set inventory:"4 100 race" 1000
+OK
+127.0.0.1:6379> keys inventory:4*
+1) "inventory:4 100 race"
+2) "inventory:4-100-race"
+3) "inventory:4X100"
+
+127.0.0.1:6379> set inventory:Hi 1000
+OK
+127.0.0.1:6379> decrby inventory:Hi 1
+(integer) 999
+127.0.0.1:6379> get inventory:Hi
+"999"
+
+127.0.0.1:6379> type inventory:Hi
+string
+127.0.0.1:6379> object encoding inventory:Hi
+"int"
+127.0.0.1:6379> set inventory:Hi "Sold Out"
+OK
+--> Redis support Polymorphism
+127.0.0.1:6379> object encoding inventory:Hi
+"embstr"
+127.0.0.1:6379> decrby inventory:Hi 10
+(error) ERR value is not an integer or out of range
+
+127.0.0.1:6379> hset event:judo capacity 1200 location "Tokyo" ticket_price:gold 100 availability:gold 8000
+(integer) 4
+127.0.0.1:6379> hexists event:judo ticket_price
+(integer) 0
+127.0.0.1:6379> hexists event:judo ticket_price:gold
+(integer) 1
+127.0.0.1:6379> hexists event:judo location
+(integer) 1
+
+127.0.0.1:6379> hincrby event:judo availablity:gold -10
+(integer) -10
+127.0.0.1:6379> hincrby event:judo capacity 100
+(integer) 1300
+127.0.0.1:6379> hexists event:judo ticket_price
+(integer) 0
+127.0.0.1:6379> hexists event:judo ticket_price:gold
+(integer) 1
+127.0.0.1:6379> hset event:judo ticket_price_silver 200
+(integer) 1
+127.0.0.1:6379> hset event:judo ticket_price:silver 200
+(integer) 1
+127.0.0.1:6379> hscan event:judo 0 match availability:*
+1) "0"
+2) 1) "availability:gold"
+   2) "8000"
+127.0.0.1:6379> hscan event:judo 0 match ticket_price:*
+1) "0"
+2) 1) "ticket_price:gold"
+   2) "100"
+   3) "ticket_price:silver"
+   4) "200"
+   
+*********LISTS
+
+127.0.0.1:6379> lpush event:football mane:10 salah:11 firmino:9
+(integer) 3
+127.0.0.1:6379> llen event:football
+(integer) 3
+127.0.0.1:6379> lrange event:football 0 -1 (-1 end of the list)
+1) "firmino:9"
+2) "salah:11"
+3) "mane:10"
+127.0.0.1:6379> lrange event:football 0 1
+1) "firmino:9"
+2) "salah:11"
+127.0.0.1:6379> lrange event:football 0 0
+1) "firmino:9"
+127.0.0.1:6379> lrange event:football 0 2
+1) "firmino:9"
+2) "salah:11"
+3) "mane:10"
+
+127.0.0.1:6379> rpush football:barca messi:10 suarez:9 pique:3
+(integer) 3
+127.0.0.1:6379> lrange football:barca
+(error) ERR wrong number of arguments for 'lrange' command
+127.0.0.1:6379> lrange football:barca 0 -1
+1) "messi:10"
+2) "suarez:9"
+3) "pique:3"
+
+127.0.0.1:6379> lpop football:barca
+"messi:10"
+127.0.0.1:6379> rpop event:football
+"mane:10"
+
+redisu$ redis-cli
+127.0.0.1:6379> sadd football manu chelsea lfc
+(integer) 3
+127.0.0.1:6379> sscan football 0 match *
+1) "0"
+2) 1) "lfc"
+   2) "chelsea"
+   3) "manu"
+127.0.0.1:6379> sadd football lfc
+(integer) 0
+127.0.0.1:6379> sismember football lfc
+(integer) 1
+127.0.0.1:6379> sismember football watford
+(integer) 0
+127.0.0.1:6379> sadd football arsenal
+(integer) 1
+127.0.0.1:6379> srem football arsenal
+
+
+
+127.0.0.1:6379> sadd football lfc mancity chelsea manu
+(integer) 0
+127.0.0.1:6379> sscan football 0 match *
+1) "0"
+2) 1) "mancity"
+   2) "manu"
+   3) "chelsea"
+   4) "lfc"
+127.0.0.1:6379> spop football 1
+1) "lfc"
+127.0.0.1:6379> spop football 2
+1) "mancity"
+2) "chelsea"
+127.0.0.1:6379> sscan football 0 match *
+1) "0"
+2) 1) "manu"
+127.0.0.1:6379>
+
+127.0.0.1:6379> sadd football:lfc ox milner salah
+(integer) 3
+127.0.0.1:6379> sadd football:eng ox milner
+(integer) 2
+127.0.0.1:6379> sinter football:lfc football:eng
+1) "milner"
+2) "ox"
+127.0.0.1:6379> sunion football:lfc football:eng
+1) "milner"
+2) "salah"
+3) "ox"
+127.0.0.1:6379> sdiff football:lfc football:eng
+1) "salah"
+127.0.0.1:6379> zadd football:mancity sane silva sterling
+(error) ERR syntax error
+127.0.0.1:6379> zadd football:mancity 1 sane 2 silva 3 sterling
+(integer) 3
+
+127.0.0.1:6379> zrange football:mancity 0 -1
+1) "sane"
+2) "silva"
+3) "sterling"
+127.0.0.1:6379> zrevrange football:mancity 0 -1
+1) "sterling"
+2) "silva"
+3) "sane"
+
+127.0.0.1:6379> zadd football:mancity 9 ageuro 9 debruyne
+(integer) 2
+127.0.0.1:6379> zscan football:mancity 0 -1
+(error) ERR syntax error
+127.0.0.1:6379> zrange football:mancity 0 -1
+1) "sane"
+2) "silva"
+3) "sterling"
+4) "ageuro"
+5) "debruyne"
+
+127.0.0.1:6379> zrange football:mancity 0 -1 withscores
+ 1) "sane"
+ 2) "1"
+ 3) "silva"
+ 4) "2"
+ 5) "sterling"
+ 6) "3"
+ 7) "ageuro"
+ 8) "9"
+ 9) "debruyne"
+10) "9"
+
+127.0.0.1:6379> zscore football:mancity sterling
+"3"
+127.0.0.1:6379> zrank football:mancity silva
+(integer) 1
+127.0.0.1:6379> zrank football:mancity sterling
+(integer) 2
+
+127.0.0.1:6379> zcount football:mancity 1 8
+(integer) 3
+127.0.0.1:6379> zcount football:mancity 1 10
+(integer) 5
+
+
+127.0.0.1:6379> zrangebyscore football:mancity 1 3
+1) "sane"
+2) "silva"
+3) "sterling"
+127.0.0.1:6379> zrangebylex football:mancity 1 3
+(error) ERR min or max not valid string range item
+127.0.0.1:6379> zrangebylex football:mancity a f
+(error) ERR min or max not valid string range item
+127.0.0.1:6379>
+127.0.0.1:6379> zrangebylex football:mancity 1 8
+(error) ERR min or max not valid string range item
+
+127.0.0.1:6379> zrem football:mancity silva
+(integer) 1
+
+------------------------------------
+Cardinality and Capped collections 
+------------------------------------
+127.0.0.1:6379> rpush list-one a b c d e f
+(integer) 6
+127.0.0.1:6379> ltrim list-one 0 4
+OK
+127.0.0.1:6379> lrange list-one 0 -1
+1) "a"
+2) "b"
+3) "c"
+4) "d"
+5) "e"
+127.0.0.1:6379> ltrim list-one 0 -2
+OK
+127.0.0.1:6379> lrange list-one 0 -1
+1) "a"
+2) "b"
+3) "c"
+4) "d"
+
+127.0.0.1:6379> llen list-one
+(integer) 4
+127.0.0.1:6379> lpush list-one z
+(integer) 5
+127.0.0.1:6379> ltrim list-one 0 3
+OK
+127.0.0.1:6379> lrange list-one 0 -1
+1) "z"
+2) "a"
+3) "b"
+4) "c"
+
+
+127.0.0.1:6379> zadd key 1 a 2 b 3 c 4 d 5 e 6 f
+(integer) 6
+127.0.0.1:6379> zremrangebyrank key 5 -1
+(integer) 1
+127.0.0.1:6379> zremrangebyrank key 4 -1
+(integer) 1
+127.0.0.1:6379> zscan key 0 -1
+(error) ERR syntax error
+127.0.0.1:6379> zrange key 0 -1
+1) "a"
+2) "b"
+3) "c"
+4) "d"
+
+127.0.0.1:6379> zremrangebyrank key 0 0
+(integer) 1
+127.0.0.1:6379> zrange key 0 -1
+1) "b"
+2) "c"
+3) "d"
+4) "z"
+
+---> Promoting an event
+127.0.0.1:6379> zadd sales:hockey 100 jane 200 mark 300 jason
+(integer) 3
+127.0.0.1:6379>
+127.0.0.1:6379> zadd sales:football 100 jane 200 mark 400 steve
+(integer) 3
+127.0.0.1:6379> zinterstore promo:cricket 2 sales:hockey sales:football aggregate sum
+(integer) 2
+127.0.0.1:6379> zrange promo:cricket 0 -1
+1) "jane"
+2) "mark"
+127.0.0.1:6379> zrange promo:cricket 0 -1 withscores
+1) "jane"
+2) "200"
+3) "mark"
+4) "400"
+
+127.0.0.1:6379> zadd events:capacity 100 football 200 hockey
+(integer) 2
+127.0.0.1:6379> zadd events:sales -10 football 30 hockey
+(integer) 2
+127.0.0.1:6379> zunionstore events:availability 2 events:capacity events:sales aggregate sum
+(integer) 2
+127.0.0.1:6379> zrange events:availability
+(error) ERR wrong number of arguments for 'zrange' command
+127.0.0.1:6379> zrange events:availability 0 -1 withscores
+1) "football"
+2) "90"
+3) "hockey"
+4) "230"
+
+----------------------------------
+Faceting
+----------------------------------
+sample data
+
+{ 'sku' : "737-DEF-911",
+  'name' : "Women's 4x100 relay",
+  'disabled_access' : True,
+  'medal_event' : False,
+  'venue' : "Olympic stadium",
+  'category' : "Track and Field"
+}
+
+{ 'sku' : "451-ABD-323",
+  'name' : "Women's Carroms",
+  'disabled_access' : False,
+  'medal_event' : False,
+  'venue' : "Tokyo town stadium",
+  'category' : "Board games"
+}
+
+{ 'sku' : "451-ABD-323",
+  'name' : "Men's Fireball throw",
+  'disabled_access' : True,
+  'medal_event' : False,
+  'venue' : "Mountains of Mordor",
+  'category' : "Ring games"
+}
+set "event:737-DEF-911" "{ \"sku\": \"737-DEF-911\",\"name\": \"Women\"s 4x100 relay\",\"disabled_access\": True,\"medal_event\": False,\"venue\": \"Olympic stadium\",\"category\": \"Track and Field\"}"
+set "event:451-ABD-323" "{ \"sku\": \"451-ABD-323\",\"name\": \"Women\"s Carroms\",\"disabled_access\": False,\"medal_event\": False,\"venue\": \"Tokyo town stadium\",\"category\": \"Board games\"}"
+set "event:007-JAM-700" "{ \"sku\": \"007-JAM-700\",\"name\": \"Men\"s Fireball throw\",\"disabled_access\": True,\"medal_event\": False,\"venue\": \"Mountains of Mordor\",\"category\": \"Ring games\"}"
+
+
+
+---------------------
+Transactions!!
+--------------------
+Window 1
+
+127.0.0.1:6379> set event:judo "sold:out"
+OK
+127.0.0.1:6379> get event:judo
+"sold:out"
+127.0.0.1:6379> get event:judo
+"101"
+
+Window 2
+
+redisu$ redis-cli
+127.0.0.1:6379> multi
+OK
+127.0.0.1:6379> set event:judo 100
+QUEUED
+127.0.0.1:6379> incr event:judo
+QUEUED
+127.0.0.1:6379> get event:judo
+QUEUED
+127.0.0.1:6379> exec
+1) OK
+2) (integer) 101
+3) "101"
+
+127.0.0.1:6379> multi
+OK
+127.0.0.1:6379> incrby event:judo 20
+QUEUED
+127.0.0.1:6379> discard
+OK
+127.0.0.1:6379> get event:judo
+"101"
+
+127.0.0.1:6379> multi
+OK
+127.0.0.1:6379> incrby event:judo 20
+QUEUED
+127.0.0.1:6379> discard
+OK
+127.0.0.1:6379> get event:judo
+"101"
+
+--------Watch
+
+redisu$ redis-cli
+127.0.0.1:6379> set event:judo 100
+OK
+127.0.0.1:6379> watch event:judo
+OK
+127.0.0.1:6379> multi
+OK
+127.0.0.1:6379> incr event:judo
+QUEUED
+127.0.0.1:6379> exec
+1) (integer) 101
+
+2nd
+
+Window 1
+127.0.0.1:6379> get event:judo
+"101"
+127.0.0.1:6379> watch event:judo
+OK
+127.0.0.1:6379> incr event:judo
+(integer) 102
+127.0.0.1:6379> multi
+OK
+127.0.0.1:6379> incr event:judo
+QUEUED
+127.0.0.1:6379> exec
+(nil)
+
+Window2 
+
+redisu$ redis-cli
+127.0.0.1:6379> decr event:judo
+(integer) 101
+
+
+----------------------------
+Storing objects using Hashes
+----------------------------
+127.0.0.1:6379> hmset event:123-abc name "judo" disabled_access TRUE
+OK
+127.0.0.1:6379> hmset event:123-abc:availability:general qty 2000 price 25
+OK
+127.0.0.1:6379> hmget event:123-abc:availability:general
+(error) ERR wrong number of arguments for 'hmget' command
+127.0.0.1:6379> hmget event:123-abc:availability:general qty price
+1) "2000"
+2) "25"
+127.0.0.1:6379> hincrby event:123-abc:availability:general: qty
+(error) ERR wrong number of arguments for 'hincrby' command
+127.0.0.1:6379> hincrby event:123-abc:availability:general: qty -1
+(integer) -1
+127.0.0.1:6379> hincrby event:123-abc:availability:general qty -1
+(integer) 1999
+
+
+
+------------------
+Inventory Control use case
+-----------------
+
+
+-------------------
+Bit Operations
+-------------------
+W
+redisu$ redis-cli
+127.0.0.1:6379> bitfield mykey set u8 0 42
+1) (integer) 0
+127.0.0.1:6379> bitfield mykey get u8 o
+(error) ERR bit offset is not an integer or out of range
+127.0.0.1:6379> bitfield mykey get u8 0
+1) (integer) 42
+127.0.0.1:6379> bitfield mykey incrby u8 0 1
+1) (integer) 43
+127.0.0.1:6379> type mykey
+string
+127.0.0.1:6379> object encoding mykey
+"raw"
+
+127.0.0.1:6379> get mykey
+"+"
+127.0.0.1:6379> bitfield mykey set u8 0 2
+1) (integer) 43
+127.0.0.1:6379> bitfield mykey get u8 0
+1) (integer) 2
+127.0.0.1:6379> get mykey
+"\x02"
+
+127.0.0.1:6379> bitfield bf2 set u8 #1 5
+1) (integer) 0
+127.0.0.1:6379> bitfield bf2 get u8 #1 get u8 8
+1) (integer) 5
+2) (integer) 5
+
+127.0.0.1:6379> bitfield ba1 set u1 6 1
+1) (integer) 0
+127.0.0.1:6379> bitfield ba2 set u1 7 1
+1) (integer) 0
+127.0.0.1:6379> bitop or  ba3 ba1 ba2
+(integer) 1
+127.0.0.1:6379> bicount ba3
+(error) ERR unknown command `bicount`, with args beginning with: `ba3`,
+127.0.0.1:6379> bitcount ba3
+(integer) 2
+127.0.0.1:6379> bitcount ba1
+(integer) 1
+127.0.0.1:6379> bitcount ba2
+(integer) 1
+
+127.0.0.1:6379> bitfield ba4 set u1 7 1 set u1 15 1 set u1 23 1
+1) (integer) 0
+2) (integer) 0
+3) (integer) 0
+127.0.0.1:6379> bitcount ba4
+(integer) 3
+127.0.0.1:6379> bitcount ba4 1 2
+(integer) 2
+127.0.0.1:6379> bitcount ba4 0 -2  ((Offset of Bytes!!))
+(integer) 2
+
+-----------------------
+PUB SUB
+----------------------
+127.0.0.1:6379> subscribe ch-1
+Reading messages... (press Ctrl-C to quit)
+1) "subscribe"
+2) "ch-1"
+3) (integer) 1
+1) "message"
+2) "ch-1"
+3) "hello"
+
+127.0.0.1:6379> publish ch-1 hello
+(integer) 1
+127.0.0.1:6379>
+
+127.0.0.1:6379> pubsub channels *
+1) "ch-1"
+2) "ch-2"
+
+-------------------
+
+redisu$ redis-cli
+127.0.0.1:6379> publish longjump bolt/10
+(integer) 1
+127.0.0.1:6379> publish longjump salah/15
+(integer) 1
+127.0.0.1:6379> publish longjump:medal mane/10
+(integer) 2
+
+127.0.0.1:6379> subscribe longjump:medal
+Reading messages... (press Ctrl-C to quit)
+1) "subscribe"
+2) "longjump:medal"
+3) (integer) 1
+1) "message"
+2) "longjump:medal"
+3) "mane/10"
+
+127.0.0.1:6379> psubscribe longjump*
+Reading messages... (press Ctrl-C to quit)
+1) "psubscribe"
+2) "longjump*"
+3) (integer) 1
+1) "pmessage"
+2) "longjump*"
+3) "longjump"
+4) "bolt/10"
+1) "pmessage"
+2) "longjump*"
+3) "longjump"
+4) "salah/15"
+1) "pmessage"
+2) "longjump*"
+3) "longjump:medal"
+4) "mane/10"
+
+---------------------
+
+127.0.0.1:6379> pubsub numsub longjump longjump:medal
+1) "longjump"
+2) (integer) 0
+3) "longjump:medal"
+4) (integer) 1
+127.0.0.1:6379> pubsub numpat
+(integer) 1
+
+----------------------------
+Geospatial 
+----------------------------
+127.0.0.1:6379> geoadd geopoints 12.9716 77.5946 Bangalore
+(integer) 1
+127.0.0.1:6379> geoadd geopoints 12.2958 76.6394 Mysore
+(integer) 1
+127.0.0.1:6379> geoadd geopoints 13.0827 80.2707 Chennai
+(integer) 1
+
+127.0.0.1:6379> zrange geopoints 0 -1 withscores
+1) "Mysore"
+2) "3756317123724606"
+3) "Bangalore"
+4) "3757192988776466"
+5) "Chennai"
+6) "3760497529246865"
+
+127.0.0.1:6379> geopos geopoints Mysore Bangalore
+1) 1) "12.29580134153366089"
+   2) "76.63939933853600905"
+2) 1) "12.9715999960899353"
+   2) "77.59459886854826038"
+   
+127.0.0.1:6379> geohash geopoints Mysore Bangalore
+1) "um8ezzc8bg0"
+2) "umc1rjttk10"
+
+127.0.0.1:6379> geodist geopoints Bangalore Mysore
+"107555.2381"
+127.0.0.1:6379> geodist geopoints Bangalore Mysore mi
+"66.8319"
+127.0.0.1:6379> geodist geopoints Bangalore Mysore km
+"107.5552"
+
+
+127.0.0.1:6379> georadius geopoints 12.9716 80.2707 100 km withdist
+1) 1) "Chennai"
+   2) "2.0883"
+   
+127.0.0.1:6379> georadius geopoints 12.9716 80.2707 100 km count 1 desc
+1) "Chennai"
+
+127.0.0.1:6379> georadiusbymember geopoints Bangalore 100 mi withcoord
+1) 1) "Mysore"
+   2) 1) "12.29580134153366089"
+      2) "76.63939933853600905"
+2) 1) "Bangalore"
+   2) 1) "12.9715999960899353"
+      2) "77.59459886854826038"
+	  
+127.0.0.1:6379> georadiusbymember geopoints Bangalore 200 mi withdist
+1) 1) "Mysore"
+   2) "66.8319"
+2) 1) "Bangalore"
+   2) "0.0000"
+3) 1) "Chennai"
+   2) "184.9591"
+   
+------------------
+LUA Scripting!!
+------------------
+hset hash-key field1 hello field2 world
+
+eval "return redis.call('HGET', KEYS[1], ARGV[1])" 1 hash-key field2
+"world"
+
+W
+redisu$ redis-cli
+127.0.0.1:6379> eval "return 42" 0
+(integer) 42
+127.0.0.1:6379> eval "local val=42 return val" 0
+(integer) 42
+127.0.0.1:6379> set int-key 42
+OK
+127.0.0.1:6379> eval "local val=redis.call('GET', KEYS[1]) return val" 1 int-key
+"42"
+127.0.0.1:6379> object-encoding int-key
+(error) ERR unknown command `object-encoding`, with args beginning with: `int-key`,
+127.0.0.1:6379> object encoding int-key
+"int"
+
